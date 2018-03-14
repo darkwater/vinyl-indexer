@@ -1,0 +1,9 @@
+[package]
+name = "vinyl-indexer"
+version = "0.1.0"
+authors = ["Sam Lakerveld <darkwater124@gmail.com>"]
+
+[dependencies]
+id3      = "0.2.3"
+metaflac = "0.1.8"
+walkdir  = "2.1.4"
