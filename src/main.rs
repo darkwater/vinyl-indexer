@@ -50,13 +50,14 @@ fn main() -> Result<(), Error> {
         match ext {
             Some("flac") => {
                 let meta = metaflac::Tag::read_from_path(path).map_err(error::failed_flac(path))?;
-                let block = meta.get_blocks(BlockType::VorbisComment).pop().ok_or_else(error::missing("metadata", path))?;
-                let meta  = if let &Block::VorbisComment(ref b) = block { &b.comments }
-                            else { unreachable!() };
+                let meta = meta.vorbis_comments().ok_or_else(error::missing("metadata", path))?;
 
                 Ok(Song {
                     path:         path.into(),
                     filetype:     Filetype::FLAC,
+                    disc:         meta.get("DISCNUMBER")
+                                      .and_then(|n| n.first())
+                                      .and_then(|n| n.parse().ok()),
                     track:        meta.get("TRACKNUMBER")
                                       .and_then(|n| n.first())
                                       .and_then(|n| n.parse().ok()),
@@ -84,6 +85,7 @@ fn main() -> Result<(), Error> {
                 Ok(Song {
                     path:         path.into(),
                     filetype:     Filetype::MP3,
+                    disc:         meta.disc().map(|n| n as u8),
                     track:        meta.track().map(|n| n as u8),
                     artist:       meta.artist().ok_or_else(error::missing("artist", path))?.into(),
                     album:        meta.album().as_ref().cloned().unwrap_or("(Other)").into(),
@@ -103,20 +105,27 @@ fn main() -> Result<(), Error> {
     let errors = errors.into_iter().map(|s| s.unwrap_err());
 
     let albums = songs.group_by(|song| {
-        song.album.clone()
+        song.path.parent().unwrap().to_path_buf()
     });
 
-    let albums = albums.into_iter().map(|(name, songs)| {
-        let songs  = songs.collect::<Vec<_>>();
-        let path   = songs.first().unwrap().path.parent().unwrap().into();
-        let artist = songs.first().unwrap().artist.clone();
+    let albums = albums.into_iter().map(|(path, songs)| {
+        let mut songs = songs.collect::<Vec<_>>();
+        let artist    = songs.first().unwrap().artist.clone();
+        let name      = songs.first().unwrap().artist.clone();
+
+        songs.sort_by(|a,b| a.disc.cmp(&b.disc).then(a.track.cmp(&b.track)));
+
         Album {
             path, artist, name, songs
         }
     });
 
     for album in albums {
+        println!();
         println!("{} - {} [{} songs]", album.artist, album.name, album.songs.len());
+        for song in album.songs {
+            println!(" {:3} - {}", song.track.unwrap_or(0), song.title);
+        }
     }
 
     println!("{} errors occurred.", errors.len());

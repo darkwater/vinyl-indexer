@@ -18,6 +18,7 @@ pub struct Album {
 pub struct Song {
     pub path:         PathBuf,
     pub filetype:     Filetype,
+    pub disc:         Option<u8>,
     pub track:        Option<u8>,
     pub artist:       String,
     pub album:        String,
