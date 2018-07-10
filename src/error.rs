@@ -1,13 +1,22 @@
 use id3;
 use metaflac;
 use std;
-use std::fmt::{self, Debug, Display};
+use std::fmt::{self, Display};
 use std::path::Path;
 
 #[derive(Debug)]
 pub struct Error {
     what: &'static str,
     path: String,
+}
+
+impl From<std::io::Error> for Error {
+    fn from(_: std::io::Error) -> Error {
+        Error {
+            what: "i/o error",
+            path: "".into(),
+        }
+    }
 }
 
 impl std::error::Error for Error {

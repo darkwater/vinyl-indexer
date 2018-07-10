@@ -1,33 +1,28 @@
-use std::path::PathBuf;
+use std::ffi::OsString;
 
 #[derive(Debug)]
-pub struct Artist {
-    pub name:   String,
-    pub albums: Vec<Album>,
+pub struct Folder {
+    pub path:  OsString,
+    pub files: Vec<File>,
 }
 
 #[derive(Debug)]
-pub struct Album {
-    pub path:   PathBuf,
-    pub artist: String,
-    pub name:   String,
-    pub songs:  Vec<Song>,
-}
-
-#[derive(Debug)]
-pub struct Song {
-    pub path:         PathBuf,
-    pub filetype:     Filetype,
-    pub disc:         Option<u8>,
-    pub track:        Option<u8>,
+pub struct File {
+    pub name:         OsString,
+    pub format:       Format,
+    pub title:        String,
     pub artist:       String,
     pub album:        String,
-    pub album_artist: Option<String>,
-    pub title:        String,
+    pub album_artist: String,
+    pub year:         i32,
+    pub disc:         i32,
+    pub total_discs:  i32,
+    pub track:        i32,
+    pub total_tracks: i32,
 }
 
 #[derive(Debug)]
-pub enum Filetype {
+pub enum Format {
     FLAC,
     MP3,
 }
