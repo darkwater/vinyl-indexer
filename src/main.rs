@@ -48,11 +48,13 @@ fn encode(folders: Vec<Folder>, errors: Vec<Error>) -> Result<(), Box<std::error
         "total_tracks"
     ];
 
-    write_str(&mut out, "fields")?;
-    write_array_len(&mut out, fields.len() as u32)?;
-    for field in fields {
-        write_str(&mut out, field)?;
-    }
+    // write_str(&mut out, "fields")?;
+    // write_array_len(&mut out, fields.len() as u32)?;
+    // for field in fields {
+    //     write_str(&mut out, field)?;
+    // }
+    write_str(&mut out, "version")?;
+    write_uint(&mut out, 1)?;
 
     write_str(&mut out, "folders")?;
     write_array_len(&mut out, folders.len() as u32)?;
