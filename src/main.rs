@@ -1,16 +1,19 @@
 extern crate id3;
 extern crate itertools;
 extern crate metaflac;
+extern crate rmp;
 
 mod data;
 mod error;
 
 use data::*;
-use std::fs;
-use std::convert::Into;
-use std::path::Path;
-use std::ffi::OsStr;
 use error::Error;
+use std::convert::Into;
+use std::ffi::OsStr;
+use std::fs;
+use std::io;
+use std::os::unix::ffi::OsStrExt;
+use std::path::Path;
 
 #[derive(Debug)]
 struct Settings<'a> {
@@ -23,8 +26,59 @@ fn main() -> Result<(), Error> {
     let settings = Settings {
         root: path.as_os_str(),
     };
-    let folders = walk_dir(&path, &settings);
-    println!("{:#?}", folders);
+    let (folders, errors) = walk_dir(&path, &settings);
+
+    encode(folders, errors).unwrap();
+
+    Ok(())
+}
+
+fn encode(folders: Vec<Folder>, errors: Vec<Error>) -> Result<(), Box<std::error::Error>> {
+    use rmp::encode::*;
+    let mut out = io::stdout();
+
+    write_map_len(&mut out, 3)?;
+
+    write_str(&mut out, "errors")?;
+    write_uint(&mut out, errors.len() as u64)?;
+
+    let fields = &[
+        "name",         "format", "title", "artist",      "album",
+        "album_artist", "year",   "disc",  "total_discs", "track",
+        "total_tracks"
+    ];
+
+    write_str(&mut out, "fields")?;
+    write_array_len(&mut out, fields.len() as u32)?;
+    for field in fields {
+        write_str(&mut out, field)?;
+    }
+
+    write_str(&mut out, "folders")?;
+    write_array_len(&mut out, folders.len() as u32)?;
+    for folder in folders {
+        write_map_len(&mut out, 2)?;
+
+        write_str(&mut out, "path")?;
+        write_bin(&mut out, folder.path.as_bytes())?;
+
+        write_str(&mut out, "files")?;
+        write_array_len(&mut out, folder.files.len() as u32)?;
+        for file in folder.files {
+            write_array_len(&mut out, fields.len() as u32)?;
+            write_bin(&mut out, file.name.as_bytes())?;
+            write_str(&mut out, file.format.to_str())?;
+            write_str(&mut out, &file.title)?;
+            write_str(&mut out, &file.artist)?;
+            write_str(&mut out, &file.album)?;
+            write_str(&mut out, &file.album_artist)?;
+            write_sint(&mut out, file.year)?;
+            write_sint(&mut out, file.disc)?;
+            write_sint(&mut out, file.total_discs)?;
+            write_sint(&mut out, file.track)?;
+            write_sint(&mut out, file.total_tracks)?;
+        }
+    }
 
     Ok(())
 }
@@ -131,11 +185,11 @@ fn read_file<P: AsRef<Path>>(path: P) -> Result<Option<File>, Error> {
                 artist:       meta.artist().unwrap_or("").into(),
                 album:        meta.album().unwrap_or("").into(),
                 album_artist: meta.album_artist().unwrap_or("").into(),
-                year:         meta.year().map(|n| n as i32).unwrap_or(0),
-                disc:         meta.disc().map(|n| n as i32).unwrap_or(0),
-                total_discs:  meta.total_discs().map(|n| n as i32).unwrap_or(0),
-                track:        meta.track().map(|n| n as i32).unwrap_or(0),
-                total_tracks: meta.total_tracks().map(|n| n as i32).unwrap_or(0),
+                year:         meta.year().map(|n| n as i64).unwrap_or(0),
+                disc:         meta.disc().map(|n| n as i64).unwrap_or(0),
+                total_discs:  meta.total_discs().map(|n| n as i64).unwrap_or(0),
+                track:        meta.track().map(|n| n as i64).unwrap_or(0),
+                total_tracks: meta.total_tracks().map(|n| n as i64).unwrap_or(0),
             }))
         },
         _ => Ok(None)

@@ -14,15 +14,24 @@ pub struct File {
     pub artist:       String,
     pub album:        String,
     pub album_artist: String,
-    pub year:         i32,
-    pub disc:         i32,
-    pub total_discs:  i32,
-    pub track:        i32,
-    pub total_tracks: i32,
+    pub year:         i64,
+    pub disc:         i64,
+    pub total_discs:  i64,
+    pub track:        i64,
+    pub total_tracks: i64,
 }
 
 #[derive(Debug)]
 pub enum Format {
     FLAC,
     MP3,
+}
+
+impl Format {
+    pub fn to_str(&self) -> &'static str {
+        match self {
+            Format::FLAC => "flac",
+            Format::MP3  => "mp3",
+        }
+    }
 }
