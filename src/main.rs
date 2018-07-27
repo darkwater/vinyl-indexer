@@ -11,7 +11,7 @@ use error::Error;
 use std::convert::Into;
 use std::ffi::OsStr;
 use std::fs;
-use std::io;
+use std::io::{self, Read};
 use std::os::unix::ffi::OsStrExt;
 use std::path::Path;
 
@@ -21,10 +21,12 @@ struct Settings<'a> {
 }
 
 fn main() -> Result<(), Error> {
-    let path = std::env::args_os().skip(1).next().unwrap();
+    let mut path = vec![];
+    io::stdin().read_to_end(&mut path).unwrap();
+    let path = OsStr::from_bytes(&path);
 
     let settings = Settings {
-        root: path.as_os_str(),
+        root: path,
     };
     let (folders, errors) = walk_dir(&path, &settings);
 
